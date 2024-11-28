@@ -23,8 +23,8 @@ EXPOSE 3000
 ENV PORT=3000 \
   TZ=Asia/Hong_Kong \
   NODE_ENV=production \
-  AUTH_TOKEN= \
-  API_ENDPOINT=https://webapp.hongkongpost.hk/correct_addressing/GetStreetAddr.jsp
+  API_ENDPOINT=https://webapp.hongkongpost.hk/correct_addressing/GetStreetAddr.jsp \
+  AUTH_TOKEN=
 
 ENTRYPOINT ["dumb-init", "--"]
 

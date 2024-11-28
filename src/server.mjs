@@ -1,13 +1,12 @@
 import fastify from 'fastify';
 import {installSwagger, installSwaggerUi} from "./swagger.mjs";
 import {installRoutes} from "./router.mjs";
-import logger from "@fastify/one-line-logger";
 
 const app = fastify({
     bodyLimit: 1048576 * 10, // 10MB
     logger: {
         transport: {
-            target: logger
+            target: '@fastify/one-line-logger'
         }
     }
 });
