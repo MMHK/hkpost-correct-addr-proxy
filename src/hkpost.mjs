@@ -1,7 +1,7 @@
 import axios from 'axios';
 import {load as cheerioLoad } from 'cheerio';
 
-const API_ENDPOINT =  process.env.API_ENDPOINT || "https://webapp.hongkongpost.hk/correct_addressing/GetStreetAddr.jsp";
+const API_ENDPOINT =  process.env.API_ENDPOINT || "https://webapp.hongkongpost.hk/correct_addressing";
 
 function tableToJson(body, tableSelector) {
     const $ = cheerioLoad(body);
@@ -42,17 +42,27 @@ function tableToJson(body, tableSelector) {
         });
 }
 
+function scoreStrings(words, string2) {
+    // 計算每個單詞在 string2 中出現的次數
+    return words.reduce((count, word) => {
+        const regex = new RegExp(`(${word})`, 'ig');
+        const occurrences = (string2.match(regex) || []).length;
+        return count + occurrences;
+    }, 0);
+}
+
 export default {
-    async correctAddressing(opt = {
-        street: "",
-        key: ""
+    scoreStrings,
+
+    async getBuildingAddress(opt = {
+        building: ""
     }) {
         const query = {
             iseng: "true",
             n: 4,
             a: 1,
             currpage: 1,
-            lang1: "zh_cn",
+            lang1: "en",
             ...opt,
         };
 
@@ -61,7 +71,34 @@ export default {
             search.append(k, v);
         })
 
-        const resp  = await axios.get(`${API_ENDPOINT}?${search.toString()}`, {
+        const resp  = await axios.get(`${API_ENDPOINT}/GetBuildingAddr.jsp?${search.toString()}`, {
+            headers: {
+                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari",
+            }
+        });
+        let body = resp.data || "";
+        return tableToJson(body, ".tableb");
+    },
+
+    async getStreetAddress(opt = {
+        street: "",
+        key: ""
+    }) {
+        const query = {
+            iseng: "true",
+            n: 50,
+            a: 1,
+            currpage: 1,
+            lang1: "en",
+            ...opt,
+        };
+
+        const search = new URLSearchParams();
+        Object.entries(query).forEach(([k, v]) => {
+            search.append(k, v);
+        })
+
+        const resp  = await axios.get(`${API_ENDPOINT}/GetStreetAddr.jsp?${search.toString()}`, {
             headers: {
                 "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari",
             }

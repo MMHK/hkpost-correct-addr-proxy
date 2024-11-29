@@ -9,7 +9,9 @@
     "dev": "nodemon",
     "build": "cross-env NODE_ENV=production webpack --config webpack.config.cjs",
     "start": "node dist/bundle.js",
-    "test": "cross-env NODE_OPTIONS='--experimental-vm-modules' jest --testNamePattern='hkpost'"
+    "test": "cross-env NODE_OPTIONS='--experimental-vm-modules' jest --testNamePattern='hkpost'",
+    "test:street": "cross-env NODE_OPTIONS='--experimental-vm-modules' jest --testNamePattern='street'",
+    "test:building": "cross-env NODE_OPTIONS='--experimental-vm-modules' jest --testNamePattern='building'"
   },
   "devDependencies": {
     "@babel/cli": "^7.24.8",

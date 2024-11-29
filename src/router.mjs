@@ -49,9 +49,13 @@ const installRoutes = (app) => {
                         type: 'string',
                         description: '街道或者屋邨名(不帶編號)',
                     },
-                    key : {
+                    building : {
                         type: 'string',
-                        description: '大廈/建築名稱'
+                        description: '樓宇/大廈/建築名稱'
+                    },
+                    estate : {
+                        type: 'string',
+                        description: '屋邨名稱'
                     },
                 }
             },
@@ -80,6 +84,10 @@ const installRoutes = (app) => {
                         building: {
                           type: 'string',
                           description: '大廈/建築名稱',
+                        },
+                        score: {
+                            type: 'number',
+                            description: '相似度',
                         }
                       }
                     }
@@ -94,15 +102,95 @@ const installRoutes = (app) => {
         },
     }, async (request, reply) => {
 
-      let { street, key } = request.query;
+      let { street, building, estate } = request.query;
 
-      street = street.replace(/(rd|road|st|street)$/ig, '')
+      street = (street || "").replace(/(rd|road|st|street)$/ig, '')
+      building = (building || "").replace(/(house|building)$/ig, '')
+      estate = (estate || "").replace(/(estate)$/ig, '')
 
       try {
-          const result = await hkpost.correctAddressing({
-              street,
-              key,
-          })
+          let result = [];
+
+          let keys = Array.from(new Set([building, estate].map(row => {
+              return row.replace(/(the|park|tower)/ig, '').split(/\W+/);
+          }).flat(1))).filter(row => row);
+
+          let found_in_street = false;
+          if (street) {
+              if (keys.length === 0) {
+                  keys = [""];
+              }
+              result = await Promise.all(keys.map(key => {
+                  return hkpost.getStreetAddress({
+                      street,
+                      key,
+                  });
+              }));
+              let street_result = result.filter((row) => {
+                  return row instanceof Array && row.length > 0;
+              });
+              if (street_result.length > 0) {
+                  found_in_street = true;
+              }
+          }
+
+          // console.log('street result', result);
+
+          if (!found_in_street) {
+              keys = [building, estate].map(row => {
+                  return row.replace(/(the|park|tower)/ig, '').trim();
+              }).filter(row => row);
+
+              if (keys.length > 0) {
+                  result = await Promise.all(keys.map(key => {
+                      return hkpost.getBuildingAddress({
+                          building: key,
+                      });
+                  }));
+              }
+          }
+
+          // console.log('building result', result);
+
+          // 打散並合併
+          let mappings = result.filter((row) => {
+              return row instanceof Array && row.length > 0;
+          }).reduce((prev, curr) => {
+              return prev.concat(curr);
+          }, []).map(row => {
+              let district = row["District-en"] || "";
+              let street = row["Street-en"] || "";
+              let building = row["Building-en"] || "";
+
+              return [`${district}${street}${building}`, row];
+          });
+          // 去重
+          result = Object.values(Object.fromEntries(mappings));
+          // 計算相似度并排序
+          keys = keys.map(row => {
+              return row.split(/\W+/);
+          }).flat(1).filter(row => {
+              return row;
+          });
+          console.log(`search keys`, keys);
+
+          result = result.map((item => {
+              let copyItem = {
+                  ...item,
+                  "District-en": "",
+                  "District-zh": "",
+              };
+              const score = hkpost.scoreStrings(keys, JSON.stringify(copyItem));
+              return {
+                  ...item,
+                  score,
+              };
+          })).sort((a, b) => {
+              return b.score - a.score;
+          });
+
+          console.log(result);
+
           if (result instanceof Array && result.length > 0) {
               return reply.status(200).send({
                   status: true,
@@ -111,6 +199,7 @@ const installRoutes = (app) => {
                           district: row["District-en"] || "",
                           street: row["Street-en"] || "",
                           building: row["Building-en"] || "",
+                          score: row["score"] || 0,
                       }
                   }),
               });
