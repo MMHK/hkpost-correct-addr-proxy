@@ -24,6 +24,7 @@ ENV PORT=3000 \
   TZ=Asia/Hong_Kong \
   NODE_ENV=production \
   API_ENDPOINT=https://webapp.hongkongpost.hk/correct_addressing \
+  GEO_GOV_HK_ENDPOINT=https://geodata.gov.hk/gs/api/v1.0.0 \
   AUTH_TOKEN=
 
 ENTRYPOINT ["dumb-init", "--"]
