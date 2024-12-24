@@ -219,7 +219,7 @@ const installRoutes = (app) => {
             // console.log('street result', result);
 
             if (!found_in_street) {
-                keys = [building, estate].map(row => {
+                keys = [building, estate, street].map(row => {
                     return row.replace(/(the|park|tower)/ig, '').trim();
                 }).filter(row => row);
 
